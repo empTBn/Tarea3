@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USA_State_Task</title>
+</head>
+<body>
+    <h3><b>USA State Map</b></h3>
+    <div id="container"></div>
+    <svg class="states" id="states" width="370" height="370"></svg>
+
+    <script type="module" src="functions.js"></script>
+    <script type="module">
+        import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm" 
+        var xScaleUSA = d3.scaleLinear().domain([-66.419422, -125.786406]).range([350, 20]);
+        var yScaleUSA = d3.scaleLinear().domain([23.982057,50.508481]).range([200, 50]);
+        async function prepareCoordinates(){
+            try {
+                const req = 'states_usa.bna';
+                const resp = await fetch(req, {
+                headers: {
+                'Content-Type': 'text/csv',
+                },
+                });
+            if (resp.ok) {
+                const csvContent = await resp.text(); 
+                var arrayCoord = csvContent.split('\n');
+                var newCoord = [];
+                var posc = 0;
+                var areaAll = [];
+                var listCoord = [];
+                arrayCoord.forEach(elem => { 
+                    elem =elem.split(',');
+                    if(elem.length == 3){
+                        newCoord = newCoord.concat({id:elem[0],idUser:elem[1],
+                                                     numState:elem[2], coord:[]});
+                        if(listCoord.length != 0){
+                            areaAll = areaAll.concat([listCoord]); 
+                        }
+                        posc ++;
+                        listCoord=[];
+                    }else{
+                        newCoord[posc-1].coord = {x:elem[0],y:elem[1]};
+                        listCoord = listCoord.concat({x:elem[0], y:elem[1]});
+                    }
+                });
+            }else{
+                console.error('Error downloading file:', resp.status);
+            }
+
+            return [newCoord,areaAll];
+            } catch (error) {
+                console.error('Request error:', error);
+            }
+        }
+        let prepareCoordResUSA = await prepareCoordinates();
+        let coordUSA = prepareCoordResUSA[0]
+        let areaAllUSA = prepareCoordResUSA[1]
+        console.log(areaAllUSA)
+
+        var areaUSA = d3.area()
+                    .x(d => xScaleUSA(d.x))
+                    .y0(d => yScaleUSA(d.y))
+                    .y1(d => yScaleUSA(d.y));
+
+        areaAllUSA.forEach(element => {
+            d3.select("#states")
+            .append("path")
+            .attr("d", areaUSA(element)) 
+            .attr("fill", "blue")
+            .attr("stroke", "green"); 
+        });
+
+
+    </script>
+
+    <script type="null" src= "functions.js"></script>
+
+    <!--Radial layout-->
+    <h4><b>Radial Layout</b></h4>
+    <script type="module"> 
+        import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm" 
+           var xScaleRadial = d3.scaleLinear().domain([-66.419422, -125.786406]).range([350, 20]);
+           var yScaleRadial = d3.scaleLinear().domain([23.982057,50.508481]).range([200, 50]);
+           var dataRadial = {"name": "A", "children": [
+                       {"name": "B"},
+                       {"name": "C", "children": [
+                           {"name": "E"},
+                           {"name": "F"}
+                       ]},
+                       {"name": "D"},
+                       {"name": "G"},
+                       {"name": "H", "children": [
+                           {"name": "I"},
+                           {"name": "J"}
+                       ]},
+                       {"name": "K"},
+                       {"name": "L"},
+                       {"name": "M", "children": [
+                       {"name": "M"},
+                       {"name": "N"}
+                       ]},
+                       {"name": "O"}
+                   ]};
+   
+       var rootRadial = d3.hierarchy(dataRadial)
+       .sort((a,b) => b.height - a.height || a.data.name.localeCompare(b.data.name));
+   
+       var radiusRadial = 100;
+   
+       var treeLayoutRadial = d3.cluster()
+           .size([360, radiusRadial]);
+   
+       treeLayoutRadial(rootRadial);
+   
+       var svgRadial = d3.select("#radial");
+   
+       // draw nodes
+       svgRadial.select('g.nodes')
+       .selectAll('circle.node')
+       .data(rootRadial.descendants())
+       .enter()
+       .append('circle')
+       .classed('node', true)
+       .attr('cx', 0)
+       .attr('cy', d => -d.y)
+       .attr('r', 5)
+       .attr("fill", "lightgreen")
+       .attr('stroke', "darkblue")
+       .attr('stroke-width', 1)
+       .attr("transform", d => `
+           rotate(${d.x}, 0, 0)
+       `);
+   
+       var lineGenRadial = d3.lineRadial()
+       .angle(d => d.x * Math.PI / 180)
+       .radius(d => d.y);
+   
+       var linkGenRadial =  d3.linkRadial()
+       .angle(d => d.x * Math.PI / 180)
+       .radius(d => d.y);
+   
+       svgRadial.select('g.links')
+       .selectAll('path.link')
+       .data(rootRadial.links())
+       .enter()
+       .append("path")
+       .classed('link', true)
+       .attr('stroke', "orange")
+       .attr('stroke-width', 2)
+       //.attr("d", linkGenRadial);
+       .attr("d", (d) => lineGenRadial([d.target, d.source]));
+       </script>
+
+       
+       <!--Treemap squarify-->
+       <script type="module"> 
+           import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm" 
+           var xScaleTreemap = d3.scaleLinear().domain([-66.419422, -125.786406]).range([350, 20]);
+           var yScaleTreemap = d3.scaleLinear().domain([23.982057,50.508481]).range([200, 50]);
+           
+       </script>
+   
+      
+       <svg id="radial" width=580 height=250>
+           <g transform="translate(290,125)">
+           <g class="rects"></g>
+           <g class="links"></g>
+           <g class="nodes"></g>
+           </g>
+       </svg>
+
+
+</body>
+</html>
